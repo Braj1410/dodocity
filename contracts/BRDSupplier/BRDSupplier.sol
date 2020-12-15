@@ -73,11 +73,7 @@ contract BRDSupplier is Ownable, IBRDSupplier, ReentrancyGuard {
         address sender = _msgSender();
 
         ConsumerInfo storage consumer = consumerInfo[sender];
-        uint256 multiplier = _getMultiplier(
-            consumer.lastDistributeBlock,
-            block.number,
-            _since
-        );
+        uint256 multiplier = _getMultiplier(consumer.lastDistributeBlock,block.number, _since);
         if (multiplier == 0) {
             return 0;
         }
