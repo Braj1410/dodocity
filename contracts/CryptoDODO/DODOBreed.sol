@@ -7,16 +7,16 @@ import "@openzeppelin/contracts/utils/EnumerableMap.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-import "./AlpacaToken.sol";
-import "../interfaces/ICryptoAlpaca.sol";
+import "./DODOToken.sol";
+import "../interfaces/ICryptoDODO.sol";
 
-contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
+contract DODOBreed is DODOToken, ICryptoDODO, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
     using EnumerableMap for EnumerableMap.UintToAddressMap;
 
     /* ========== EVENTS ========== */
 
-    // The Hatched event is fired when two alpaca successfully hached an egg.
+    // The Hatched event is fired when two DODO successfully hached an egg.
     event Hatched(
         uint256 indexed eggId,
         uint256 matronId,
@@ -24,17 +24,17 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
         uint256 cooldownEndBlock
     );
 
-    // The GrantedToBreed event is fired whne an alpaca's owner granted
-    // addr account to use alpacaId as sire to breed.
-    event GrantedToBreed(uint256 indexed alpacaId, address addr);
+    // The GrantedToBreed event is fired whne an DODO's owner granted
+    // addr account to use DODOId as sire to breed.
+    event GrantedToBreed(uint256 indexed DODOId, address addr);
 
     /* ========== VIEWS ========== */
 
     /**
-     * Returns all the relevant information about a specific alpaca.
-     * @param _id The ID of the alpaca of interest.
+     * Returns all the relevant information about a specific DODO.
+     * @param _id The ID of the DODO of interest.
      */
-    function getAlpaca(uint256 _id)
+    function getDODO(uint256 _id)
         external
         override
         view
@@ -54,25 +54,25 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
             uint256 state
         )
     {
-        Alpaca storage alpaca = alpacas[_id];
+        DODO storage DODO = DODOs[_id];
 
         id = _id;
-        isReady = (alpaca.cooldownEndBlock <= block.number);
-        cooldownEndBlock = alpaca.cooldownEndBlock;
-        birthTime = alpaca.birthTime;
-        matronId = alpaca.matronId;
-        sireId = alpaca.sireId;
-        hatchingCost = _getBaseHatchingCost(alpaca.generation);
-        hatchingCostMultiplier = alpaca.hatchingCostMultiplier;
-        if (alpaca.hatchCostMultiplierEndBlock <= block.number) {
+        isReady = (DODO.cooldownEndBlock <= block.number);
+        cooldownEndBlock = DODO.cooldownEndBlock;
+        birthTime = DODO.birthTime;
+        matronId = DODO.matronId;
+        sireId = DODO.sireId;
+        hatchingCost = _getBaseHatchingCost(DODO.generation);
+        hatchingCostMultiplier = DODO.hatchingCostMultiplier;
+        if (DODO.hatchCostMultiplierEndBlock <= block.number) {
             hatchingCostMultiplier = 1;
         }
 
-        hatchCostMultiplierEndBlock = alpaca.hatchCostMultiplierEndBlock;
-        generation = alpaca.generation;
-        gene = alpaca.gene;
-        energy = alpaca.energy;
-        state = uint256(alpaca.state);
+        hatchCostMultiplierEndBlock = DODO.hatchCostMultiplierEndBlock;
+        generation = DODO.generation;
+        gene = DODO.gene;
+        energy = DODO.energy;
+        state = uint256(DODO.state);
     }
 
     /**
@@ -88,22 +88,22 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
 
     /**
      * @dev Checks to see if a given egg passed cooldownEndBlock and ready to crack
-     * @param _id alpaca egg ID
+     * @param _id DODO egg ID
      */
 
     function isReadyToCrack(uint256 _id) external view returns (bool) {
-        Alpaca storage alpaca = alpacas[_id];
+        DODO storage DODO = DODOs[_id];
         return
-            (alpaca.state == AlpacaGrowthState.EGG) &&
-            (alpaca.cooldownEndBlock <= uint64(block.number));
+            (DODO.state == DODOGrowthState.EGG) &&
+            (DODO.cooldownEndBlock <= uint64(block.number));
     }
 
     /* ========== EXTERNAL MUTATIVE FUNCTIONS  ========== */
 
     /**
-     * Grants permission to another account to sire with one of your alpacas.
+     * Grants permission to another account to sire with one of your DODOs.
      * @param _addr The address that will be able to use sire for breeding.
-     * @param _sireId a alpaca _addr will be able to use for breeding as sire.
+     * @param _sireId a DODO _addr will be able to use for breeding as sire.
      */
     function grandPermissionToBreed(address _addr, uint256 _sireId)
         external
@@ -111,15 +111,15 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
     {
         require(
             isOwnerOf(msg.sender, _sireId),
-            "CryptoAlpaca: You do not own sire alpaca"
+            "CryptoDODO: You do not own sire DODO"
         );
 
-        alpacaAllowedToAddress.set(_sireId, _addr);
+        DODOAllowedToAddress.set(_sireId, _addr);
         emit GrantedToBreed(_sireId, _addr);
     }
 
     /**
-     * check if `_addr` has permission to user alpaca `_id` to breed with as sire.
+     * check if `_addr` has permission to user DODO `_id` to breed with as sire.
      */
     function hasPermissionToBreedAsSire(address _addr, uint256 _id)
         external
@@ -131,28 +131,28 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
             return true;
         }
 
-        return alpacaAllowedToAddress.get(_id) == _addr;
+        return DODOAllowedToAddress.get(_id) == _addr;
     }
 
     /**
-     * Clear the permission on alpaca for another user to use to breed.
-     * @param _alpacaId a alpaca to clear permission .
+     * Clear the permission on DODO for another user to use to breed.
+     * @param _DODOId a DODO to clear permission .
      */
-    function clearPermissionToBreed(uint256 _alpacaId) external override {
+    function clearPermissionToBreed(uint256 _DODOId) external override {
         require(
-            isOwnerOf(msg.sender, _alpacaId),
-            "CryptoAlpaca: You do not own this alpaca"
+            isOwnerOf(msg.sender, _DODOId),
+            "CryptoDODO: You do not own this DODO"
         );
 
-        alpacaAllowedToAddress.remove(_alpacaId);
+        DODOAllowedToAddress.remove(_DODOId);
     }
 
     /**
-     * @dev Hatch an baby alpaca egg with two alpaca you own (_matronId and _sireId).
+     * @dev Hatch an baby DODO egg with two DODO you own (_matronId and _sireId).
      * Requires a pre-payment of the fee given out to the first caller of crack()
-     * @param _matronId The ID of the Alpaca acting as matron
-     * @param _sireId The ID of the Alpaca acting as sire
-     * @return The hatched alpaca egg ID
+     * @param _matronId The ID of the DODO acting as matron
+     * @param _sireId The ID of the DODO acting as sire
+     * @return The hatched DODO egg ID
      */
     function hatch(uint256 _matronId, uint256 _sireId)
         external
@@ -167,71 +167,71 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
         // Checks for payment.
         require(
             msg.value >= autoCrackingFee,
-            "CryptoAlpaca: Required autoCrackingFee not sent"
+            "CryptoDODO: Required autoCrackingFee not sent"
         );
 
         // Checks for ALPA payment
         require(
             alpa.allowance(msgSender, address(this)) >=
                 _hatchingALPACost(_matronId, _sireId, true),
-            "CryptoAlpaca: Required hetching ALPA fee not sent"
+            "CryptoDODO: Required hetching ALPA fee not sent"
         );
 
         // Checks if matron and sire are valid mating pair
         require(
             _ownerPermittedToBreed(msgSender, _matronId, _sireId),
-            "CryptoAlpaca: Invalid permission"
+            "CryptoDODO: Invalid permission"
         );
 
         // Grab a reference to the potential matron
-        Alpaca storage matron = alpacas[_matronId];
+        DODO storage matron = DODOs[_matronId];
 
         // Make sure matron isn't pregnant, or in the middle of a siring cooldown
         require(
             _isReadyToHatch(matron),
-            "CryptoAlpaca: Matron is not yet ready to hatch"
+            "CryptoDODO: Matron is not yet ready to hatch"
         );
 
         // Grab a reference to the potential sire
-        Alpaca storage sire = alpacas[_sireId];
+        DODO storage sire = DODOs[_sireId];
 
         // Make sure sire isn't pregnant, or in the middle of a siring cooldown
         require(
             _isReadyToHatch(sire),
-            "CryptoAlpaca: Sire is not yet ready to hatch"
+            "CryptoDODO: Sire is not yet ready to hatch"
         );
 
         // Test that matron and sire are a valid mating pair.
         require(
             _isValidMatingPair(matron, _matronId, sire, _sireId),
-            "CryptoAlpaca: Matron and Sire are not valid mating pair"
+            "CryptoDODO: Matron and Sire are not valid mating pair"
         );
 
-        // All checks passed, Alpaca gets pregnant!
+        // All checks passed, DODO gets pregnant!
         return _hatchEgg(_matronId, _sireId);
     }
 
     /**
-     * @dev egg is ready to crack and give life to baby alpaca!
-     * @param _id A Alpaca egg that's ready to crack.
+     * @dev egg is ready to crack and give life to baby DODO!
+     * @param _id A DODO egg that's ready to crack.
      */
     function crack(uint256 _id) external override nonReentrant {
         // Grab a reference to the egg in storage.
-        Alpaca storage egg = alpacas[_id];
+        DODO storage egg = DODOs[_id];
 
-        // Check that the egg is a valid alpaca.
-        require(egg.birthTime != 0, "CryptoAlpaca: not valid egg");
+        // Check that the egg is a valid DODO.
+        require(egg.birthTime != 0, "CryptoDODO: not valid egg");
         require(
-            egg.state == AlpacaGrowthState.EGG,
-            "CryptoAlpaca: not a valid egg"
+            egg.state == DODOGrowthState.EGG,
+            "CryptoDODO: not a valid egg"
         );
 
         // Check that the matron is pregnant, and that its time has come!
-        require(_isReadyToCrack(egg), "CryptoAlpaca: egg cant be cracked yet");
+        require(_isReadyToCrack(egg), "CryptoDODO: egg cant be cracked yet");
 
         // Grab a reference to the sire in storage.
-        Alpaca storage matron = alpacas[egg.matronId];
-        Alpaca storage sire = alpacas[egg.sireId];
+        DODO storage matron = DODOs[egg.matronId];
+        DODO storage sire = DODOs[egg.sireId];
 
         // Call the sooper-sekret gene mixing operation.
         (
@@ -247,7 +247,7 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
 
         egg.gene = childGene;
         egg.energy = uint32(childEnergy);
-        egg.state = AlpacaGrowthState.GROWN;
+        egg.state = DODOGrowthState.GROWN;
         egg.cooldownEndBlock = uint64(
             (newBornCoolDown.div(secondsPerBlock)).add(block.number)
         );
@@ -265,23 +265,23 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
     /* ========== PRIVATE FUNCTION ========== */
 
     /**
-     * @dev Recalculate the hatchingCostMultiplier for alpaca after breed.
+     * @dev Recalculate the hatchingCostMultiplier for DODO after breed.
      * If hatchCostMultiplierEndBlock is less than current block number
      * reset hatchingCostMultiplier back to 2, otherwize multiply hatchingCostMultiplier by 2. Also update
      * hatchCostMultiplierEndBlock.
      */
-    function _refreshHatchingMultiplier(Alpaca storage _alpaca) private {
-        if (_alpaca.hatchCostMultiplierEndBlock < block.number) {
-            _alpaca.hatchingCostMultiplier = 2;
+    function _refreshHatchingMultiplier(DODO storage _DODO) private {
+        if (_DODO.hatchCostMultiplierEndBlock < block.number) {
+            _DODO.hatchingCostMultiplier = 2;
         } else {
-            uint16 newMultiplier = _alpaca.hatchingCostMultiplier * 2;
+            uint16 newMultiplier = _DODO.hatchingCostMultiplier * 2;
             if (newMultiplier > maxHatchCostMultiplier) {
                 newMultiplier = maxHatchCostMultiplier;
             }
 
-            _alpaca.hatchingCostMultiplier = newMultiplier;
+            _DODO.hatchingCostMultiplier = newMultiplier;
         }
-        _alpaca.hatchCostMultiplierEndBlock = uint64(
+        _DODO.hatchCostMultiplierEndBlock = uint64(
             (hatchingMultiplierCoolDown.div(secondsPerBlock)).add(block.number)
         );
     }
@@ -303,36 +303,36 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
 
         // if sire's owner has given permission to _sender to breed,
         // then it's permitted to breed
-        if (alpacaAllowedToAddress.contains(_sireId)) {
-            return alpacaAllowedToAddress.get(_sireId) == _sender;
+        if (DODOAllowedToAddress.contains(_sireId)) {
+            return DODOAllowedToAddress.get(_sireId) == _sender;
         }
 
         return false;
     }
 
     /**
-     * @dev Checks that a given alpaca is able to breed. Requires that the
+     * @dev Checks that a given DODO is able to breed. Requires that the
      * current cooldown is finished (for sires) and also checks that there is
      * no pending pregnancy.
      */
-    function _isReadyToHatch(Alpaca storage _alpaca)
+    function _isReadyToHatch(DODO storage _DODO)
         private
         view
         returns (bool)
     {
         return
-            (_alpaca.state == AlpacaGrowthState.GROWN) &&
-            (_alpaca.cooldownEndBlock < uint64(block.number));
+            (_DODO.state == DODOGrowthState.GROWN) &&
+            (_DODO.cooldownEndBlock < uint64(block.number));
     }
 
     /**
-     * @dev Checks to see if a given alpaca is pregnant and (if so) if the gestation
+     * @dev Checks to see if a given DODO is pregnant and (if so) if the gestation
      * period has passed.
      */
 
-    function _isReadyToCrack(Alpaca storage _egg) private view returns (bool) {
+    function _isReadyToCrack(DODO storage _egg) private view returns (bool) {
         return
-            (_egg.state == AlpacaGrowthState.EGG) &&
+            (_egg.state == DODOGrowthState.EGG) &&
             (_egg.cooldownEndBlock < uint64(block.number));
     }
 
@@ -349,14 +349,14 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
             blockNum = blockNum + 1;
         }
 
-        Alpaca storage sire = alpacas[_sireId];
+        DODO storage sire = DODOs[_sireId];
         uint256 sireHatchingBase = _getBaseHatchingCost(sire.generation);
         uint256 sireMultiplier = sire.hatchingCostMultiplier;
         if (sire.hatchCostMultiplierEndBlock < blockNum) {
             sireMultiplier = 1;
         }
 
-        Alpaca storage matron = alpacas[_matronId];
+        DODO storage matron = DODOs[_matronId];
         uint256 matronHatchingBase = _getBaseHatchingCost(matron.generation);
         uint256 matronMultiplier = matron.hatchingCostMultiplier;
         if (matron.hatchCostMultiplierEndBlock < blockNum) {
@@ -388,9 +388,9 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
         assert(alpa.transferFrom(msg.sender, devAddress, devAmount));
         assert(alpa.transferFrom(msg.sender, stakingAddress, stakingAmount));
 
-        // Grab a reference to the Alpacas from storage.
-        Alpaca storage sire = alpacas[_sireId];
-        Alpaca storage matron = alpacas[_matronId];
+        // Grab a reference to the DODOs from storage.
+        DODO storage sire = DODOs[_sireId];
+        DODO storage matron = DODOs[_matronId];
 
         // refresh hatching multiplier for both parents.
         _refreshHatchingMultiplier(sire);
@@ -426,15 +426,15 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
 
     /**
      * @dev Internal check to see if a given sire and matron are a valid mating pair.
-     * @param _matron A reference to the Alpaca struct of the potential matron.
+     * @param _matron A reference to the DODO struct of the potential matron.
      * @param _matronId The matron's ID.
-     * @param _sire A reference to the Alpaca struct of the potential sire.
+     * @param _sire A reference to the DODO struct of the potential sire.
      * @param _sireId The sire's ID
      */
     function _isValidMatingPair(
-        Alpaca storage _matron,
+        DODO storage _matron,
         uint256 _matronId,
-        Alpaca storage _sire,
+        DODO storage _sire,
         uint256 _sireId
     ) private view returns (bool) {
         // A Aapaca can't breed with itself
@@ -442,7 +442,7 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
             return false;
         }
 
-        // Alpaca can't breed with their parents.
+        // DODO can't breed with their parents.
         if (_matron.matronId == _sireId || _matron.sireId == _sireId) {
             return false;
         }
@@ -455,7 +455,7 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
 
     /**
      * @dev openzeppelin ERC1155 Hook that is called before any token transfer
-     * Clear any alpacaAllowedToAddress associated to the alpaca
+     * Clear any DODOAllowedToAddress associated to the DODO
      * that's been transfered
      */
     function _beforeTokenTransfer(
@@ -467,8 +467,8 @@ contract AlpacaBreed is AlpacaToken, ICryptoAlpaca, ReentrancyGuard, Pausable {
         bytes memory
     ) internal virtual override {
         for (uint256 i = 0; i < ids.length; i++) {
-            if (alpacaAllowedToAddress.contains(ids[i])) {
-                alpacaAllowedToAddress.remove(ids[i]);
+            if (DODOAllowedToAddress.contains(ids[i])) {
+                DODOAllowedToAddress.remove(ids[i]);
             }
         }
     }

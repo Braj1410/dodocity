@@ -11,17 +11,17 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "../interfaces/IAlpaToken.sol";
-import "../interfaces/IAlpaSupplier.sol";
-import "../interfaces/ICryptoAlpaca.sol";
-import "../interfaces/CryptoAlpacaEnergyListener.sol";
+import "../interfaces/IBRDToken.sol";
+import "../interfaces/IBRDSupplier.sol";
+import "../interfaces/ICryptoDODO.sol";
+import "../interfaces/CryptoDODOEnergyListener.sol";
 
-// Alpaca Squad manages your you alpacas
-contract AlpacaSquad is
+// DODO Squad manages your you DODOs
+contract DODOSquad is
     Ownable,
     ReentrancyGuard,
     ERC1155Receiver,
-    CryptoAlpacaEnergyListener
+    CryptoDODOEnergyListener
 {
     using SafeMath for uint256;
     using Math for uint256;
@@ -34,61 +34,61 @@ contract AlpacaSquad is
         uint256 rewardDebt;
         // share
         uint256 share;
-        // number of alpacas in this squad
-        uint256 numAlpacas;
-        // sum of alpaca energy
+        // number of DODOs in this squad
+        uint256 numDODOs;
+        // sum of DODO energy
         uint256 sumEnergy;
     }
 
     // Info of Reward.
     struct RewardInfo {
-        // Last block number that ALPAs distribution occurs.
+        // Last block number that BRDs distribution occurs.
         uint256 lastRewardBlock;
-        // Accumulated ALPAs per share. Share is determined by LP deposit and total alpaca's energy
-        uint256 accAlpaPerShare;
+        // Accumulated BRDs per share. Share is determined by LP deposit and total DODO's energy
+        uint256 accBRDPerShare;
         // Accumulated Share
         uint256 accShare;
     }
 
     /* ========== STATES ========== */
 
-    // The ALPA ERC20 token
-    IAlpaToken public alpa;
+    // The BRD ERC20 token
+    IBRDToken public BRD;
 
-    // Crypto alpaca contract
-    ICryptoAlpaca public cryptoAlpaca;
+    // Crypto DODO contract
+    ICryptoDODO public cryptoDODO;
 
-    // Alpa Supplier
-    IAlpaSupplier public supplier;
+    // BRD Supplier
+    IBRDSupplier public supplier;
 
     // farm pool info
     RewardInfo public rewardInfo;
 
-    uint256 public maxAlpacaSquadCount = 20;
+    uint256 public maxDODOSquadCount = 20;
 
     // Info of each user.
     mapping(address => UserInfo) public userInfo;
 
-    // map that keep tracks of the alpaca's original owner so contract knows where to send back when
-    // users retrieves their alpacas
-    EnumerableMap.UintToAddressMap private alpacaOriginalOwner;
+    // map that keep tracks of the DODO's original owner so contract knows where to send back when
+    // users retrieves their DODOs
+    EnumerableMap.UintToAddressMap private DODOOriginalOwner;
 
     uint256 public constant SAFE_MULTIPLIER = 1e16;
 
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        IAlpaToken _alpa,
-        ICryptoAlpaca _cryptoAlpaca,
-        IAlpaSupplier _supplier,
+        IBRDToken _BRD,
+        ICryptoDODO _cryptoDODO,
+        IBRDSupplier _supplier,
         uint256 _startBlock
     ) public {
-        alpa = _alpa;
-        cryptoAlpaca = _cryptoAlpaca;
+        BRD = _BRD;
+        cryptoDODO = _cryptoDODO;
         supplier = _supplier;
         rewardInfo = RewardInfo({
             lastRewardBlock: block.number.max(_startBlock),
-            accAlpaPerShare: 0,
+            accBRDPerShare: 0,
             accShare: 0
         });
     }
@@ -96,12 +96,12 @@ contract AlpacaSquad is
     /* ========== PUBLIC ========== */
 
     /**
-     * @dev View `_user` pending ALPAs
+     * @dev View `_user` pending BRDs
      */
-    function pendingAlpa(address _user) external view returns (uint256) {
+    function pendingBRD(address _user) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
 
-        uint256 accAlpaPerShare = rewardInfo.accAlpaPerShare;
+        uint256 accBRDPerShare = rewardInfo.accBRDPerShare;
 
         if (
             block.number > rewardInfo.lastRewardBlock &&
@@ -112,13 +112,13 @@ contract AlpacaSquad is
                 rewardInfo.lastRewardBlock
             );
 
-            accAlpaPerShare = accAlpaPerShare.add(
+            accBRDPerShare = accBRDPerShare.add(
                 total.mul(SAFE_MULTIPLIER).div(rewardInfo.accShare)
             );
         }
 
         return
-            user.share.mul(accAlpaPerShare).div(SAFE_MULTIPLIER).sub(
+            user.share.mul(accBRDPerShare).div(SAFE_MULTIPLIER).sub(
                 user.rewardDebt
             );
     }
@@ -137,7 +137,7 @@ contract AlpacaSquad is
         }
 
         uint256 reward = supplier.distribute(rewardInfo.lastRewardBlock);
-        rewardInfo.accAlpaPerShare = rewardInfo.accAlpaPerShare.add(
+        rewardInfo.accBRDPerShare = rewardInfo.accBRDPerShare.add(
             reward.mul(SAFE_MULTIPLIER).div(rewardInfo.accShare)
         );
 
@@ -145,16 +145,16 @@ contract AlpacaSquad is
     }
 
     /**
-     * @dev Retrieve caller's alpacas
+     * @dev Retrieve caller's DODOs
      */
     function retrieve(uint256[] memory _ids) public nonReentrant {
-        require(_ids.length > 0, "AlpacaSquad: invalid argument");
+        require(_ids.length > 0, "DODOSquad: invalid argument");
 
         address sender = msg.sender;
         UserInfo storage user = userInfo[sender];
         (
             uint256 share,
-            uint256 numAlpacas,
+            uint256 numDODOs,
             uint256 sumEnergy
         ) = _calculateDeletion(sender, user, _ids);
 
@@ -162,15 +162,15 @@ contract AlpacaSquad is
 
         uint256 pending = user
             .share
-            .mul(rewardInfo.accAlpaPerShare)
+            .mul(rewardInfo.accBRDPerShare)
             .div(SAFE_MULTIPLIER)
             .sub(user.rewardDebt);
         if (pending > 0) {
-            _safeAlpaTransfer(sender, pending);
+            _safeBRDTransfer(sender, pending);
         }
 
         // Update user reward debt with new share
-        user.rewardDebt = share.mul(rewardInfo.accAlpaPerShare).div(
+        user.rewardDebt = share.mul(rewardInfo.accBRDPerShare).div(
             SAFE_MULTIPLIER
         );
 
@@ -178,12 +178,12 @@ contract AlpacaSquad is
         rewardInfo.accShare = rewardInfo.accShare.add(share).sub(user.share);
 
         user.share = share;
-        user.numAlpacas = numAlpacas;
+        user.numDODOs = numDODOs;
         user.sumEnergy = sumEnergy;
 
         for (uint256 i = 0; i < _ids.length; i++) {
-            alpacaOriginalOwner.remove(_ids[i]);
-            cryptoAlpaca.safeTransferFrom(
+            DODOOriginalOwner.remove(_ids[i]);
+            cryptoDODO.safeTransferFrom(
                 address(this),
                 sender,
                 _ids[i],
@@ -204,15 +204,15 @@ contract AlpacaSquad is
         if (user.sumEnergy > 0) {
             uint256 pending = user
                 .share
-                .mul(rewardInfo.accAlpaPerShare)
+                .mul(rewardInfo.accBRDPerShare)
                 .div(SAFE_MULTIPLIER)
                 .sub(user.rewardDebt);
 
             if (pending > 0) {
-                _safeAlpaTransfer(sender, pending);
+                _safeBRDTransfer(sender, pending);
             }
 
-            user.rewardDebt = user.share.mul(rewardInfo.accAlpaPerShare).div(
+            user.rewardDebt = user.share.mul(rewardInfo.accBRDPerShare).div(
                 SAFE_MULTIPLIER
             );
         }
@@ -229,12 +229,12 @@ contract AlpacaSquad is
         uint256 _id,
         uint256,
         bytes memory
-    ) external override nonReentrant fromCryptoAlpaca returns (bytes4) {
+    ) external override nonReentrant fromCryptoDODO returns (bytes4) {
         UserInfo storage user = userInfo[_from];
         uint256[] memory ids = _asSingletonArray(_id);
         (
             uint256 share,
-            uint256 numAlpacas,
+            uint256 numDODOs,
             uint256 sumEnergy
         ) = _calculateAddition(user, ids);
 
@@ -243,16 +243,16 @@ contract AlpacaSquad is
         if (user.sumEnergy > 0) {
             uint256 pending = user
                 .share
-                .mul(rewardInfo.accAlpaPerShare)
+                .mul(rewardInfo.accBRDPerShare)
                 .div(SAFE_MULTIPLIER)
                 .sub(user.rewardDebt);
             if (pending > 0) {
-                _safeAlpaTransfer(_from, pending);
+                _safeBRDTransfer(_from, pending);
             }
         }
 
         // Update user reward debt with new share
-        user.rewardDebt = share.mul(rewardInfo.accAlpaPerShare).div(
+        user.rewardDebt = share.mul(rewardInfo.accBRDPerShare).div(
             SAFE_MULTIPLIER
         );
 
@@ -260,14 +260,14 @@ contract AlpacaSquad is
         rewardInfo.accShare = rewardInfo.accShare.add(share).sub(user.share);
 
         user.share = share;
-        user.numAlpacas = numAlpacas;
+        user.numDODOs = numDODOs;
         user.sumEnergy = sumEnergy;
 
         // Give original owner the right to breed
-        cryptoAlpaca.grandPermissionToBreed(_from, _id);
+        cryptoDODO.grandPermissionToBreed(_from, _id);
 
         // store original owner
-        alpacaOriginalOwner.set(_id, _from);
+        DODOOriginalOwner.set(_id, _from);
 
         return
             bytes4(
@@ -286,11 +286,11 @@ contract AlpacaSquad is
         uint256[] memory _ids,
         uint256[] memory,
         bytes memory
-    ) external override nonReentrant fromCryptoAlpaca returns (bytes4) {
+    ) external override nonReentrant fromCryptoDODO returns (bytes4) {
         UserInfo storage user = userInfo[_from];
         (
             uint256 share,
-            uint256 numAlpacas,
+            uint256 numDODOs,
             uint256 sumEnergy
         ) = _calculateAddition(user, _ids);
 
@@ -299,16 +299,16 @@ contract AlpacaSquad is
         if (user.sumEnergy > 0) {
             uint256 pending = user
                 .share
-                .mul(rewardInfo.accAlpaPerShare)
+                .mul(rewardInfo.accBRDPerShare)
                 .div(SAFE_MULTIPLIER)
                 .sub(user.rewardDebt);
             if (pending > 0) {
-                _safeAlpaTransfer(_from, pending);
+                _safeBRDTransfer(_from, pending);
             }
         }
 
         // Update user reward debt with new share
-        user.rewardDebt = share.mul(rewardInfo.accAlpaPerShare).div(
+        user.rewardDebt = share.mul(rewardInfo.accBRDPerShare).div(
             SAFE_MULTIPLIER
         );
 
@@ -316,16 +316,16 @@ contract AlpacaSquad is
         rewardInfo.accShare = rewardInfo.accShare.add(share).sub(user.share);
 
         user.share = share;
-        user.numAlpacas = numAlpacas;
+        user.numDODOs = numDODOs;
         user.sumEnergy = sumEnergy;
 
         // Give original owner the right to breed
         for (uint256 i = 0; i < _ids.length; i++) {
             // store original owner
-            alpacaOriginalOwner.set(_ids[i], _from);
+            DODOOriginalOwner.set(_ids[i], _from);
 
             // Give original owner the right to breed
-            cryptoAlpaca.grandPermissionToBreed(_from, _ids[i]);
+            cryptoDODO.grandPermissionToBreed(_from, _ids[i]);
         }
 
         return
@@ -336,38 +336,38 @@ contract AlpacaSquad is
             );
     }
 
-    /* ========== ICryptoAlpacaEnergyListener ========== */
+    /* ========== ICryptoDODOEnergyListener ========== */
 
     /**
-        @dev Handles the Alpaca energy change callback.
-        @param _id The id of the Alpaca which the energy changed
-        @param _newEnergy The new alpaca energy it changed to
+        @dev Handles the DODO energy change callback.
+        @param _id The id of the DODO which the energy changed
+        @param _newEnergy The new DODO energy it changed to
     */
-    function onCryptoAlpacaEnergyChanged(
+    function onCryptoDODOEnergyChanged(
         uint256 _id,
         uint256 _oldEnergy,
         uint256 _newEnergy
-    ) external override fromCryptoAlpaca ownsAlpaca(_id) {
-        address from = alpacaOriginalOwner.get(_id);
+    ) external override fromCryptoDODO ownsDODO(_id) {
+        address from = DODOOriginalOwner.get(_id);
         UserInfo storage user = userInfo[from];
 
         uint256 sumEnergy = user.sumEnergy.add(_newEnergy).sub(_oldEnergy);
-        uint256 share = sumEnergy.mul(sumEnergy).div(user.numAlpacas);
+        uint256 share = sumEnergy.mul(sumEnergy).div(user.numDODOs);
 
         updatePool();
 
         if (user.sumEnergy > 0) {
             uint256 pending = user
                 .share
-                .mul(rewardInfo.accAlpaPerShare)
+                .mul(rewardInfo.accBRDPerShare)
                 .div(SAFE_MULTIPLIER)
                 .sub(user.rewardDebt);
             if (pending > 0) {
-                _safeAlpaTransfer(from, pending);
+                _safeBRDTransfer(from, pending);
             }
         }
         // Update user reward debt with new share
-        user.rewardDebt = share.mul(rewardInfo.accAlpaPerShare).div(
+        user.rewardDebt = share.mul(rewardInfo.accBRDPerShare).div(
             SAFE_MULTIPLIER
         );
 
@@ -381,38 +381,38 @@ contract AlpacaSquad is
     /* ========== PRIVATE ========== */
 
     /**
-     * @dev given user and array of alpacas ids, it validate the alpacas
-     * and calculates the user share, numAlpacas, and sumEnergy after the addition
+     * @dev given user and array of DODOs ids, it validate the DODOs
+     * and calculates the user share, numDODOs, and sumEnergy after the addition
      */
     function _calculateAddition(UserInfo storage _user, uint256[] memory _ids)
         private
         view
         returns (
             uint256 share,
-            uint256 numAlpacas,
+            uint256 numDODOs,
             uint256 sumEnergy
         )
     {
         require(
-            _user.numAlpacas + _ids.length <= maxAlpacaSquadCount,
-            "AlpacaSquad: Max alpaca reached"
+            _user.numDODOs + _ids.length <= maxDODOSquadCount,
+            "DODOSquad: Max DODO reached"
         );
-        numAlpacas = _user.numAlpacas + _ids.length;
+        numDODOs = _user.numDODOs + _ids.length;
         sumEnergy = _user.sumEnergy;
 
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
-            require(id != 0, "AlpacaSquad: invalid alpaca");
+            require(id != 0, "DODOSquad: invalid DODO");
 
-            // Fetch alpaca energy and state
-            (, , , , , , , , , , , uint256 energy, uint256 state) = cryptoAlpaca
-                .getAlpaca(id);
-            require(state == 1, "AlpacaFarm: invalid alpaca state");
-            require(energy > 0, "AlpacaFarm: invalid alpaca energy");
+            // Fetch DODO energy and state
+            (, , , , , , , , , , , uint256 energy, uint256 state) = cryptoDODO
+                .getDODO(id);
+            require(state == 1, "DODOFarm: invalid DODO state");
+            require(energy > 0, "DODOFarm: invalid DODO energy");
             sumEnergy = sumEnergy.add(energy);
         }
 
-        share = sumEnergy.mul(sumEnergy).div(numAlpacas);
+        share = sumEnergy.mul(sumEnergy).div(numDODOs);
     }
 
     function _calculateDeletion(
@@ -424,29 +424,29 @@ contract AlpacaSquad is
         view
         returns (
             uint256 share,
-            uint256 numAlpacas,
+            uint256 numDODOs,
             uint256 sumEnergy
         )
     {
-        numAlpacas = _user.numAlpacas.sub(_ids.length);
+        numDODOs = _user.numDODOs.sub(_ids.length);
         sumEnergy = _user.sumEnergy;
 
         for (uint256 i = 0; i < _ids.length; i++) {
             uint256 id = _ids[i];
             require(
-                alpacaOriginalOwner.get(id) == owner,
-                "AlpacaFarm: original owner not found"
+                DODOOriginalOwner.get(id) == owner,
+                "DODOFarm: original owner not found"
             );
 
-            // Fetch alpaca energy and state
-            (, , , , , , , , , , , uint256 energy, ) = cryptoAlpaca.getAlpaca(
+            // Fetch DODO energy and state
+            (, , , , , , , , , , , uint256 energy, ) = cryptoDODO.getDODO(
                 id
             );
             sumEnergy = sumEnergy.sub(energy);
         }
 
-        if (numAlpacas > 0) {
-            share = sumEnergy.mul(sumEnergy).div(numAlpacas);
+        if (numDODOs > 0) {
+            share = sumEnergy.mul(sumEnergy).div(numDODOs);
         }
     }
 
@@ -461,36 +461,36 @@ contract AlpacaSquad is
         return array;
     }
 
-    // Safe alpa transfer function, just in case if rounding error causes pool to not have enough ALPAs.
-    function _safeAlpaTransfer(address _to, uint256 _amount) private {
-        uint256 alpaBal = alpa.balanceOf(address(this));
-        if (_amount > alpaBal) {
-            alpa.transfer(_to, alpaBal);
+    // Safe BRD transfer function, just in case if rounding error causes pool to not have enough BRDs.
+    function _safeBRDTransfer(address _to, uint256 _amount) private {
+        uint256 BRDBal = BRD.balanceOf(address(this));
+        if (_amount > BRDBal) {
+            BRD.transfer(_to, BRDBal);
         } else {
-            alpa.transfer(_to, _amount);
+            BRD.transfer(_to, _amount);
         }
     }
 
     /* ========== Owner ========== */
 
-    function setMaxAlpacaSquadCount(uint256 _count) public onlyOwner {
-        maxAlpacaSquadCount = _count;
+    function setMaxDODOSquadCount(uint256 _count) public onlyOwner {
+        maxDODOSquadCount = _count;
     }
 
     /* ========== MODIFIER ========== */
 
-    modifier fromCryptoAlpaca() {
+    modifier fromCryptoDODO() {
         require(
-            msg.sender == address(cryptoAlpaca),
-            "AlpacaFarm: received alpaca from unauthenticated contract"
+            msg.sender == address(cryptoDODO),
+            "DODOFarm: received DODO from unauthenticated contract"
         );
         _;
     }
 
-    modifier ownsAlpaca(uint256 _id) {
+    modifier ownsDODO(uint256 _id) {
         require(
-            alpacaOriginalOwner.contains(_id),
-            "AlpacaFarm: original owner not found"
+            DODOOriginalOwner.contains(_id),
+            "DODOFarm: original owner not found"
         );
         _;
     }

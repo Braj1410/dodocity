@@ -6,24 +6,24 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/introspection/IERC165.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../interfaces/IGeneScience.sol";
-import "../interfaces/ICryptoAlpacaEnergyListener.sol";
-import "./AlpacaBreed.sol";
+import "../interfaces/ICryptoDODOEnergyListener.sol";
+import "./DODOBreed.sol";
 
-contract AlpacaOperator is AlpacaBreed {
+contract DODOOperator is DODOBreed {
     using Address for address;
 
     address public operator;
 
     /*
-     * bytes4(keccak256('onCryptoAlpacaEnergyChanged(uint256,uint256,uint256)')) == 0x5a864e1c
+     * bytes4(keccak256('onCryptoDODOEnergyChanged(uint256,uint256,uint256)')) == 0x5a864e1c
      */
     bytes4
-        private constant _INTERFACE_ID_CRYPTO_ALPACA_ENERGY_LISTENER = 0x5a864e1c;
+        private constant _INTERFACE_ID_CRYPTO_DODO_ENERGY_LISTENER = 0x5a864e1c;
 
     /* ========== EVENTS ========== */
 
     /**
-     * @dev Event for when alpaca's energy changed from `fromEnergy`
+     * @dev Event for when DODO's energy changed from `fromEnergy`
      */
     event EnergyChanged(
         uint256 indexed id,
@@ -33,21 +33,21 @@ contract AlpacaOperator is AlpacaBreed {
 
     /* ========== OPERATOR ONLY FUNCTION ========== */
 
-    function updateAlpacaEnergy(
+    function updateDODOEnergy(
         address _owner,
         uint256 _id,
         uint32 _newEnergy
     ) external onlyOperator nonReentrant {
-        require(_newEnergy > 0, "CryptoAlpaca: invalid energy");
+        require(_newEnergy > 0, "CryptoDODO: invalid energy");
 
         require(
             isOwnerOf(_owner, _id),
-            "CryptoAlpaca: alpaca does not belongs to owner"
+            "CryptoDODO: DODO does not belongs to owner"
         );
 
-        Alpaca storage thisAlpaca = alpacas[_id];
-        uint32 oldEnergy = thisAlpaca.energy;
-        thisAlpaca.energy = _newEnergy;
+        DODO storage thisDODO = DODOs[_id];
+        uint32 oldEnergy = thisDODO.energy;
+        thisDODO.energy = _newEnergy;
 
         emit EnergyChanged(_id, oldEnergy, _newEnergy);
         _doSafeEnergyChangedAcceptanceCheck(_owner, _id, oldEnergy, _newEnergy);
@@ -60,7 +60,7 @@ contract AlpacaOperator is AlpacaBreed {
     function transferOperator(address _newOperator) external onlyOperator {
         require(
             _newOperator != address(0),
-            "CryptoAlpaca: new operator is the zero address"
+            "CryptoDODO: new operator is the zero address"
         );
         operator = _newOperator;
     }
@@ -73,7 +73,7 @@ contract AlpacaOperator is AlpacaBreed {
     modifier onlyOperator() {
         require(
             operator == _msgSender(),
-            "CryptoAlpaca: caller is not the operator"
+            "CryptoDODO: caller is not the operator"
         );
         _;
     }
@@ -89,10 +89,10 @@ contract AlpacaOperator is AlpacaBreed {
         if (_to.isContract()) {
             if (
                 IERC165(_to).supportsInterface(
-                    _INTERFACE_ID_CRYPTO_ALPACA_ENERGY_LISTENER
+                    _INTERFACE_ID_CRYPTO_DODO_ENERGY_LISTENER
                 )
             ) {
-                ICryptoAlpacaEnergyListener(_to).onCryptoAlpacaEnergyChanged(
+                ICryptoDODOEnergyListener(_to).onCryptoDODOEnergyChanged(
                     _id,
                     _oldEnergy,
                     _newEnergy

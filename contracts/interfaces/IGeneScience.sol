@@ -3,10 +3,10 @@
 pragma solidity =0.6.12;
 
 interface IGeneScience {
-    function isAlpacaGeneScience() external pure returns (bool);
+    function isDODOGeneScience() external pure returns (bool);
 
     /**
-     * @dev given genes of alpaca 1 & 2, return a genetic combination
+     * @dev given genes of DODO 1 & 2, return a genetic combination
      * @param genes1 genes of matron
      * @param genes2 genes of sire
      * @param generation child generation
@@ -29,4 +29,6 @@ interface IGeneScience {
             uint256 energy,
             uint256 generationFactor
         );
+
+        
 }

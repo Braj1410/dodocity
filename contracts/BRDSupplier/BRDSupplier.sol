@@ -8,16 +8,16 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../interfaces/IAlpaToken.sol";
-import "../interfaces/IAlpaSupplier.sol";
+import "../interfaces/IBRDToken.sol";
+import "../interfaces/IBRDSupplier.sol";
 
-contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
+contract BRDSupplier is Ownable, IBRDSupplier, ReentrancyGuard {
     using SafeMath for uint256;
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    // The ALPA ERC20 token
-    IAlpaToken public alpa;
+    // The BRD ERC20 token
+    IBRDToken public BRD;
 
     // Set of address that are approved consumer
     EnumerableSet.AddressSet private approvedConsumers;
@@ -28,8 +28,8 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
 
-    // number of ALPA tokens created per block.
-    uint256 public alpaPerBlock;
+    // number of BRD tokens created per block.
+    uint256 public BRDPerBlock;
 
     // dev address.
     address public devAddr;
@@ -43,18 +43,18 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
         address consumer;
         // How many allocation points assigned to this consumer
         uint256 allocPoint;
-        // Last block number that ALPAs distribution occurs.
+        // Last block number that BRDs distribution occurs.
         uint256 lastDistributeBlock;
     }
 
     constructor(
-        IAlpaToken _alpa,
-        uint256 _alpaPerBlock,
+        IBRDToken _BRD,
+        uint256 _BRDPerBlock,
         address _devAddr,
         address _communityAddr
     ) public {
-        alpa = _alpa;
-        alpaPerBlock = _alpaPerBlock;
+        BRD = _BRD;
+        BRDPerBlock = _BRDPerBlock;
         devAddr = _devAddr;
         communityAddr = _communityAddr;
     }
@@ -84,21 +84,21 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
 
         consumer.lastDistributeBlock = block.number;
         uint256 amount = multiplier
-            .mul(alpaPerBlock)
+            .mul(BRDPerBlock)
             .mul(consumer.allocPoint)
             .div(totalAllocPoint);
 
         // 10% of total reward goes to dev
         uint256 devReward = amount.div(10);
-        alpa.mint(devAddr, devReward);
+        BRD.mint(devAddr, devReward);
 
         // 10% of total reward goes to community
         uint256 communityReward = amount.div(10);
-        alpa.mint(communityAddr, communityReward);
+        BRD.mint(communityAddr, communityReward);
 
         //  rest goes to consumer
         uint256 consumerReward = amount.sub(devReward).sub(communityReward);
-        alpa.mint(sender, consumerReward);
+        BRD.mint(sender, consumerReward);
 
         return consumerReward;
     }
@@ -111,7 +111,7 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
     {
         require(
             approvedConsumers.contains(_consumer),
-            "AlpaSupplier: consumer isn't approved"
+            "BRDSupplier: consumer isn't approved"
         );
 
         ConsumerInfo storage consumer = consumerInfo[_consumer];
@@ -125,7 +125,7 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
         }
 
         uint256 amount = multiplier
-            .mul(alpaPerBlock)
+            .mul(BRDPerBlock)
             .mul(consumer.allocPoint)
             .div(totalAllocPoint);
 
@@ -167,7 +167,7 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
     function remove(address _consumer) public onlyOwner {
         require(
             approvedConsumers.contains(_consumer),
-            "AlpaSupplier: consumer isn't approved"
+            "BRDSupplier: consumer isn't approved"
         );
 
         approvedConsumers.remove(_consumer);
@@ -180,12 +180,12 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
     }
 
     /**
-     * @dev Update the given consumer's ALPA allocation point. Can only be called by the owner.
+     * @dev Update the given consumer's BRD allocation point. Can only be called by the owner.
      */
     function set(address _consumer, uint256 _allocPoint) public onlyOwner {
         require(
             approvedConsumers.contains(_consumer),
-            "AlpaSupplier: consumer isn't approved"
+            "BRDSupplier: consumer isn't approved"
         );
 
         totalAllocPoint = totalAllocPoint.add(_allocPoint).sub(
@@ -194,26 +194,26 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
         consumerInfo[_consumer].allocPoint = _allocPoint;
     }
 
-    // Transfer alpa owner to `_owner`
+    // Transfer BRD owner to `_owner`
     // EMERGENCY ONLY
-    function setAlpaOwner(address _owner) external onlyOwner {
-        Ownable(address(alpa)).transferOwnership(_owner);
+    function setBRDOwner(address _owner) external onlyOwner {
+        Ownable(address(BRD)).transferOwnership(_owner);
     }
 
-    // Update number of ALPA to mint per block
-    function setAlpaPerBlock(uint256 _alpaPerBlock) external onlyOwner {
-        alpaPerBlock = _alpaPerBlock;
+    // Update number of BRD to mint per block
+    function setBRDPerBlock(uint256 _BRDPerBlock) external onlyOwner {
+        BRDPerBlock = _BRDPerBlock;
     }
 
     // Update dev address by the previous dev.
     function setDevAddr(address _devAddr) external {
-        require(devAddr == _msgSender(), "AlpaSupplier: unauthorized");
+        require(devAddr == _msgSender(), "BRDSupplier: unauthorized");
         devAddr = _devAddr;
     }
 
     // Update community pool addr address by the previous dev.
     function setCommunityAddr(address _communityAddr) external {
-        require(communityAddr == _msgSender(), "AlpaSupplier: unauthorized");
+        require(communityAddr == _msgSender(), "BRDSupplier: unauthorized");
         communityAddr = _communityAddr;
     }
 
@@ -222,7 +222,7 @@ contract AlpaSupplier is Ownable, IAlpaSupplier, ReentrancyGuard {
     modifier onlyApprovedConsumer() {
         require(
             approvedConsumers.contains(_msgSender()),
-            "AlpaSupplier: unauthorized"
+            "BRDSupplier: unauthorized"
         );
         _;
     }

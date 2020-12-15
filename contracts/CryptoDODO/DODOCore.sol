@@ -4,11 +4,11 @@ pragma solidity =0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IGeneScience.sol";
-import "./AlpacaOperator.sol";
+import "./DODOOperator.sol";
 
-contract AlpacaCore is AlpacaOperator {
+contract DODOCore is DODOOperator {
     /**
-     * @dev Initializes crypto alpaca contract.
+     * @dev Initializes crypto DODO contract.
      * @param _alpa ALPA ERC20 contract address
      * @param _devAddress dev address.
      * @param _stakingAddress staking address.
@@ -26,8 +26,8 @@ contract AlpacaCore is AlpacaOperator {
         devAddress = _devAddress;
         stakingAddress = _stakingAddress;
 
-        // start with the mythical genesis alpaca
-        _createGen0Alpaca(uint256(-1), 0, msg.sender);
+        // start with the mythical genesis DODO
+        _createGen0DODO(uint256(-1), 0, msg.sender);
     }
 
     /* ========== OWNER MUTATIVE FUNCTION ========== */
@@ -43,14 +43,14 @@ contract AlpacaCore is AlpacaOperator {
     }
 
     /**
-     * @dev pause crypto alpaca contract stops any further hatching.
+     * @dev pause crypto DODO contract stops any further hatching.
      */
     function pause() external onlyOwner {
         _pause();
     }
 
     /**
-     * @dev unpause crypto alpaca contract.
+     * @dev unpause crypto DODO contract.
      */
     function unpause() external onlyOwner {
         _unpause();

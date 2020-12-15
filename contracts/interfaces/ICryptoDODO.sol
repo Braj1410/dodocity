@@ -4,8 +4,8 @@ pragma solidity =0.6.12;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-interface ICryptoAlpaca is IERC1155 {
-    function getAlpaca(uint256 _id)
+interface ICryptoDODO is IERC1155 {
+    function getDODO(uint256 _id)
         external
         view
         returns (
@@ -31,7 +31,7 @@ interface ICryptoAlpaca is IERC1155 {
 
     function grandPermissionToBreed(address _addr, uint256 _sireId) external;
 
-    function clearPermissionToBreed(uint256 _alpacaId) external;
+    function clearPermissionToBreed(uint256 _DODOId) external;
 
     function hatch(uint256 _matronId, uint256 _sireId)
         external

@@ -3,88 +3,88 @@
 pragma solidity =0.6.12;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "./AlpacaBase.sol";
+import "./DODOBase.sol";
 
-contract AlpacaToken is AlpacaBase, ERC1155("") {
+contract DODOToken is DODOBase, ERC1155("") {
     /* ========== EVENTS ========== */
 
     /**
-     * @dev Emitted when single `alpacaId` alpaca with `gene` and `energy` is born
+     * @dev Emitted when single `DODOId` DODO with `gene` and `energy` is born
      */
-    event BornSingle(uint256 indexed alpacaId, uint256 gene, uint256 energy);
+    event BornSingle(uint256 indexed DODOId, uint256 gene, uint256 energy);
 
     /**
      * @dev Equivalent to multiple {BornSingle} events
      */
-    event BornBatch(uint256[] alpacaIds, uint256[] genes, uint256[] energy);
+    event BornBatch(uint256[] DODOIds, uint256[] genes, uint256[] energy);
 
     /* ========== VIEWS ========== */
 
     /**
-     * @dev Check if `_alpacaId` is owned by `_account`
+     * @dev Check if `_DODOId` is owned by `_account`
      */
-    function isOwnerOf(address _account, uint256 _alpacaId)
+    function isOwnerOf(address _account, uint256 _DODOId)
         public
         view
         returns (bool)
     {
-        return balanceOf(_account, _alpacaId) == 1;
+        return balanceOf(_account, _DODOId) == 1;
     }
 
     /* ========== OWNER MUTATIVE FUNCTION ========== */
 
     /**
-     * @dev Allow contract owner to update URI to look up all alpaca metadata
+     * @dev Allow contract owner to update URI to look up all DODO metadata
      */
     function setURI(string memory _newuri) external onlyOwner {
         _setURI(_newuri);
     }
 
     /**
-     * @dev Allow contract owner to create generation 0 alpaca with `_gene`,
+     * @dev Allow contract owner to create generation 0 DODO with `_gene`,
      *   `_energy` and transfer to `owner`
      *
      * Requirements:
      *
      * - `_energy` must be less than or equal to MAX_GEN0_ENERGY
      */
-    function createGen0Alpaca(
+    function createGen0DODO(
         uint256 _gene,
         uint256 _energy,
         address _owner
     ) external onlyOwner {
-        address alpacaOwner = _owner;
-        if (alpacaOwner == address(0)) {
-            alpacaOwner = owner();
+        address DODOOwner = _owner;
+        if (DODOOwner == address(0)) {
+            DODOOwner = owner();
         }
 
-        _createGen0Alpaca(_gene, _energy, alpacaOwner);
+        _createGen0DODO(_gene, _energy, DODOOwner);
     }
 
     /**
-     * @dev Equivalent to multiple {createGen0Alpaca} function
+     * @dev Equivalent to multiple {createGen0DODO} function
      *
      * Requirements:
      *
      * - all `_energies` must be less than or equal to MAX_GEN0_ENERGY
      */
-    function createGen0AlpacaBatch(
+    function createGen0DODOBatch(
         uint256[] memory _genes,
         uint256[] memory _energies,
         address _owner
     ) external onlyOwner {
-        address alpacaOwner = _owner;
-        if (alpacaOwner == address(0)) {
-            alpacaOwner = owner();
+        address DODOOwner = _owner;
+        if (DODOOwner == address(0)) {
+            DODOOwner = owner();
         }
 
-        _createGen0AlpacaBatch(_genes, _energies, _owner);
+        _createGen0DODOBatch(_genes, _energies, _owner);
     }
 
     /* ========== INTERNAL ALPA GENERATION ========== */
 
     /**
-     * @dev Create an alpaca egg. Egg's `gene` and `energy` will assigned to 0
+     * @dev Create an DODO egg. Egg's `gene` and `energy` will assigned to 0
      * initially and won't be determined until egg is cracked.
      */
     function _createEgg(
@@ -98,7 +98,7 @@ contract AlpacaToken is AlpacaBase, ERC1155("") {
         require(_sireId == uint256(uint32(_sireId)));
         require(_generation == uint256(uint16(_generation)));
 
-        Alpaca memory _alpaca = Alpaca({
+        DODO memory _DODO = DODO({
             gene: 0,
             energy: 0,
             birthTime: uint64(now),
@@ -109,11 +109,11 @@ contract AlpacaToken is AlpacaBase, ERC1155("") {
             cooldownEndBlock: uint64(_cooldownEndBlock),
             generation: uint16(_generation),
             generationFactor: 0,
-            state: AlpacaGrowthState.EGG
+            state: DODOGrowthState.EGG
         });
 
-        alpacas.push(_alpaca);
-        uint256 eggId = alpacas.length - 1;
+        DODOs.push(_DODO);
+        uint256 eggId = DODOs.length - 1;
 
         _mint(_owner, eggId, 1, "");
 
@@ -121,20 +121,20 @@ contract AlpacaToken is AlpacaBase, ERC1155("") {
     }
 
     /**
-     * @dev Internal gen-0 alpaca creation function
+     * @dev Internal gen-0 DODO creation function
      *
      * Requirements:
      *
      * - `_energy` must be less than or equal to MAX_GEN0_ENERGY
      */
-    function _createGen0Alpaca(
+    function _createGen0DODO(
         uint256 _gene,
         uint256 _energy,
         address _owner
     ) internal returns (uint256) {
-        require(_energy <= MAX_GEN0_ENERGY, "CryptoAlpaca: invalid energy");
+        require(_energy <= MAX_GEN0_ENERGY, "CryptoDODO: invalid energy");
 
-        Alpaca memory _alpaca = Alpaca({
+        DODO memory _DODO = DODO({
             gene: _gene,
             energy: uint32(_energy),
             birthTime: uint64(now),
@@ -145,52 +145,52 @@ contract AlpacaToken is AlpacaBase, ERC1155("") {
             cooldownEndBlock: 0,
             generation: 0,
             generationFactor: GEN0_GENERATION_FACTOR,
-            state: AlpacaGrowthState.GROWN
+            state: DODOGrowthState.GROWN
         });
 
-        alpacas.push(_alpaca);
-        uint256 newAlpacaID = alpacas.length - 1;
+        DODOs.push(_DODO);
+        uint256 newDODOID = DODOs.length - 1;
 
-        _mint(_owner, newAlpacaID, 1, "");
+        _mint(_owner, newDODOID, 1, "");
 
         // emit the born event
-        emit BornSingle(newAlpacaID, _gene, _energy);
+        emit BornSingle(newDODOID, _gene, _energy);
 
-        return newAlpacaID;
+        return newDODOID;
     }
 
     /**
-     * @dev Internal gen-0 alpaca batch creation function
+     * @dev Internal gen-0 DODO batch creation function
      *
      * Requirements:
      *
      * - all `_energies` must be less than or equal to MAX_GEN0_ENERGY
      */
-    function _createGen0AlpacaBatch(
+    function _createGen0DODOBatch(
         uint256[] memory _genes,
         uint256[] memory _energies,
         address _owner
     ) internal returns (uint256[] memory) {
         require(
             _genes.length > 0,
-            "CryptoAlpaca: must pass at least one genes"
+            "CryptoDODO: must pass at least one genes"
         );
         require(
             _genes.length == _energies.length,
-            "CryptoAlpaca: genes and energy length mismatch"
+            "CryptoDODO: genes and energy length mismatch"
         );
 
-        uint256 alpacaIdStart = alpacas.length;
+        uint256 DODOIdStart = DODOs.length;
         uint256[] memory ids = new uint256[](_genes.length);
         uint256[] memory amount = new uint256[](_genes.length);
 
         for (uint256 i = 0; i < _genes.length; i++) {
             require(
                 _energies[i] <= MAX_GEN0_ENERGY,
-                "CryptoAlpaca: invalid energy"
+                "CryptoDODO: invalid energy"
             );
 
-            Alpaca memory _alpaca = Alpaca({
+            DODO memory _DODO = DODO({
                 gene: _genes[i],
                 energy: uint32(_energies[i]),
                 birthTime: uint64(now),
@@ -201,11 +201,11 @@ contract AlpacaToken is AlpacaBase, ERC1155("") {
                 cooldownEndBlock: 0,
                 generation: 0,
                 generationFactor: GEN0_GENERATION_FACTOR,
-                state: AlpacaGrowthState.GROWN
+                state: DODOGrowthState.GROWN
             });
 
-            alpacas.push(_alpaca);
-            ids[i] = alpacaIdStart + i;
+            DODOs.push(_DODO);
+            ids[i] = DODOIdStart + i;
             amount[i] = 1;
         }
 

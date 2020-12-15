@@ -8,21 +8,21 @@ import "@openzeppelin/contracts/utils/EnumerableMap.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IGeneScience.sol";
 
-contract AlpacaBase is Ownable {
+contract DODOBase is Ownable {
     using SafeMath for uint256;
 
     /* ========== ENUM ========== */
 
     /**
-     * @dev Alpaca can be in one of the two state:
+     * @dev DODO can be in one of the two state:
      *
-     * EGG - When two alpaca breed with each other, alpaca EGG is created.
+     * EGG - When two DODO breed with each other, DODO EGG is created.
      *       `gene` and `energy` are both 0 and will be assigned when egg is cracked
      *
-     * GROWN - When egg is cracked and alpaca is born! `gene` and `energy` are determined
+     * GROWN - When egg is cracked and DODO is born! `gene` and `energy` are determined
      *         in this state.
      */
-    enum AlpacaGrowthState {EGG, GROWN}
+    enum DODOGrowthState {EGG, GROWN}
 
     /* ========== PUBLIC STATE VARIABLES ========== */
 
@@ -65,7 +65,7 @@ contract AlpacaBase is Ownable {
     uint256 public secondsPerBlock = 15;
 
     /**
-     * @dev amount of time a new born alpaca needs to wait before participating in breeding activity.
+     * @dev amount of time a new born DODO needs to wait before participating in breeding activity.
      */
     uint256 public newBornCoolDown = uint256(1 days);
 
@@ -75,8 +75,8 @@ contract AlpacaBase is Ownable {
     uint256 public hatchingDuration = uint256(5 minutes);
 
     /**
-     * @dev when two alpaca just bred, the breeding multiplier will doubled to control
-     * alpaca's population. This is the amount of time each parent must wait for the
+     * @dev when two DODO just bred, the breeding multiplier will doubled to control
+     * DODO's population. This is the amount of time each parent must wait for the
      * breeding multiplier to reset back to 1
      */
     uint256 public hatchingMultiplierCoolDown = uint256(6 hours);
@@ -92,8 +92,8 @@ contract AlpacaBase is Ownable {
     uint64 public constant GEN0_GENERATION_FACTOR = 10;
 
     /**
-     * @dev maximum gen-0 alpaca energy. This is to prevent contract owner from
-     * creating arbitrary energy for gen-0 alpaca
+     * @dev maximum gen-0 DODO energy. This is to prevent contract owner from
+     * creating arbitrary energy for gen-0 DODO
      */
     uint32 public constant MAX_GEN0_ENERGY = 3600;
 
@@ -110,54 +110,54 @@ contract AlpacaBase is Ownable {
     /* ========== INTERNAL STATE VARIABLES ========== */
 
     /**
-     * @dev An array containing the Alpaca struct for all Alpacas in existence. The ID
-     * of each alpaca is the index into this array.
+     * @dev An array containing the DODO struct for all DODOs in existence. The ID
+     * of each DODO is the index into this array.
      */
-    Alpaca[] internal alpacas;
+    DODO[] internal DODOs;
 
     /**
-     * @dev mapping from AlpacaIDs to an address where alpaca owner approved address to use
+     * @dev mapping from DODOIDs to an address where DODO owner approved address to use
      * this alpca for breeding. addrss can breed with this cat multiple times without limit.
-     * This will be resetted everytime someone transfered the alpaca.
+     * This will be resetted everytime someone transfered the DODO.
      */
-    EnumerableMap.UintToAddressMap internal alpacaAllowedToAddress;
+    EnumerableMap.UintToAddressMap internal DODOAllowedToAddress;
 
-    /* ========== ALPACA STRUCT ========== */
+    /* ========== DODO STRUCT ========== */
 
     /**
-     * @dev Everything about your alpaca is stored in here. Each alpaca's appearance
-     * is determined by the gene. The energy associated with each alpaca is also
+     * @dev Everything about your DODO is stored in here. Each DODO's appearance
+     * is determined by the gene. The energy associated with each DODO is also
      * related to the gene
      */
-    struct Alpaca {
-        // Theaalpaca genetic code.
+    struct DODO {
+        // TheaDODO genetic code.
         uint256 gene;
-        // the alpaca energy level
+        // the DODO energy level
         uint32 energy;
-        // The timestamp from the block when this alpaca came into existence.
+        // The timestamp from the block when this DODO came into existence.
         uint64 birthTime;
-        // The minimum timestamp alpaca needs to wait to avoid hatching multiplier
+        // The minimum timestamp DODO needs to wait to avoid hatching multiplier
         uint64 hatchCostMultiplierEndBlock;
         // hatching cost multiplier
         uint16 hatchingCostMultiplier;
-        // The ID of the parents of this alpaca, set to 0 for gen0 alpaca.
+        // The ID of the parents of this DODO, set to 0 for gen0 DODO.
         uint32 matronId;
         uint32 sireId;
-        // The "generation number" of this alpaca. The generation number of an alpacas
+        // The "generation number" of this DODO. The generation number of an DODOs
         // is the smaller of the two generation numbers of their parents, plus one.
         uint16 generation;
-        // The minimum timestamp new born alpaca needs to wait to hatch egg.
+        // The minimum timestamp new born DODO needs to wait to hatch egg.
         uint64 cooldownEndBlock;
-        // The generation factor buffs alpaca energy level
+        // The generation factor buffs DODO energy level
         uint64 generationFactor;
-        // defines current alpaca state
-        AlpacaGrowthState state;
+        // defines current DODO state
+        DODOGrowthState state;
     }
 
     /* ========== VIEW ========== */
 
-    function getTotalAlpaca() external view returns (uint256) {
-        return alpacas.length;
+    function getTotalDODO() external view returns (uint256) {
+        return DODOs.length;
     }
 
     function _getBaseHatchingCost(uint256 _generation)
@@ -213,7 +213,7 @@ contract AlpacaBase is Ownable {
     {
         require(
             devBreedingPercentage <= 100,
-            "CryptoAlpaca: invalid breeding percentage - must be between 0 and 100"
+            "CryptoDODO: invalid breeding percentage - must be between 0 and 100"
         );
         devBreedingPercentage = _devBreedingPercentage;
     }
@@ -271,8 +271,8 @@ contract AlpacaBase is Ownable {
      */
     function setGeneScience(IGeneScience _geneScience) external onlyOwner {
         require(
-            _geneScience.isAlpacaGeneScience(),
-            "CryptoAlpaca: invalid gene science contract"
+            _geneScience.isDODOGeneScience(),
+            "CryptoDODO: invalid gene science contract"
         );
 
         // Set the new contract address
@@ -294,7 +294,7 @@ contract AlpacaBase is Ownable {
     modifier onlyDev() {
         require(
             devAddress == _msgSender(),
-            "CryptoAlpaca: caller is not the dev"
+            "CryptoDODO: caller is not the dev"
         );
         _;
     }
